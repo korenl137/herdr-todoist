@@ -74,6 +74,28 @@ def archive_cart(pane_id):
     save_cart([])
 
 
+def load_history():
+    """Sent carts, newest first; unreadable lines are skipped."""
+    try:
+        lines = (CART.parent / "history.jsonl").read_text().splitlines()
+    except FileNotFoundError:
+        return []
+    out = []
+    for line in lines:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            pass
+    return out[::-1]
+
+
+def restore(entry):
+    """Put a sent cart's tasks back into the cart (tasks already in it stay once)."""
+    items = load_cart()
+    have = {i["id"] for i in items}
+    save_cart(items + [i for i in entry["items"] if i["id"] not in have])
+
+
 def toggle(task):
     """Add the task to the cart or remove it; returns True when it is now in."""
     items = load_cart()

@@ -43,7 +43,7 @@ def wrap(text, w, lines):
 
 HELP = {
     "tree": "↑↓ move  →/Tab tasks  / search  0 cart  N+Enter jump  ^R refresh  ^Y copy  ^X clear  Esc quit",
-    "tasks": "↑↓ move  ←/→ fold  Space add  v detail  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
+    "tasks": "↑↓ move  ←/→ fold  Space add  v detail  H history  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
 }
 
 
@@ -134,6 +134,25 @@ def detail(scr, t):
             top += (k == curses.KEY_DOWN) - (k == curses.KEY_UP)
         else:
             return
+
+
+def pick_history(scr, entries):
+    """List sent carts; Enter returns the chosen entry, Esc None."""
+    sel = 0
+    while True:
+        W, h = min(curses.COLS - 1, WIDTH), curses.LINES - 2
+        scr.erase()
+        scr.addstr(0, 0, fit("Sent carts  \u2191\u2193 move  Enter=put back in the cart  Esc=back", W).rstrip(), curses.A_BOLD)
+        top = window(sel, len(entries), h)
+        for n, e in enumerate(entries[top : top + h]):
+            line = f"{e['sent'].replace('T', ' ')}  {e['pane']:8} {len(e['items'])} tasks: " + ", ".join(i["title"] for i in e["items"])
+            scr.addstr(1 + n, 0, fit(line, W), curses.A_REVERSE if top + n == sel else 0)
+        k = scr.get_wch()
+        if k == "\x1b":
+            return None
+        if k in ("\n", curses.KEY_ENTER):
+            return entries[sel]
+        sel = min(max(sel + (k == curses.KEY_DOWN) - (k == curses.KEY_UP), 0), len(entries) - 1)
 
 
 def choose_agent(scr, agents):
@@ -287,6 +306,15 @@ def main(scr):
                 focus = "tree"
             elif k == "/":
                 filtering = True
+            elif k == "H":
+                entries = tdcart.load_history()
+                e = pick_history(scr, entries) if entries else None
+                if e:
+                    tdcart.restore(e)
+                    cart_ids = {i["id"] for i in tdcart.load_cart()}
+                    msg = f"put {len(e['items'])} tasks back in the cart"
+                elif not entries:
+                    msg = "no history yet"
             elif k == "v" and cur:
                 detail(scr, next((x for x in ws["tasks"] if x["id"] == cur[0]["id"]), cur[0]))
             elif k == " " and cur:

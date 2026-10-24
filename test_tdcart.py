@@ -8,6 +8,13 @@ assert tdcart.toggle(t) is True and tdcart.load_cart() == [t]
 assert tdcart.toggle(t) is False and tdcart.load_cart() == []
 tdcart.toggle(t); tdcart.archive_cart("w:p")
 assert tdcart.load_cart() == [] and json.loads((tdcart.CART.parent / "history.jsonl").read_text())["items"] == [t]
+assert tdcart.load_history()[0]["pane"] == "w:p"
+(tdcart.CART.parent / "history.jsonl").open("a").write("not json\n")  # a damaged line is skipped
+h = tdcart.load_history()
+assert len(h) == 1 and h[0]["items"] == [t]
+tdcart.toggle({"id": "b2", "title": "b", "url": "u"}); tdcart.restore(h[0]); tdcart.restore(h[0])
+assert [i["id"] for i in tdcart.load_cart()] == ["b2", "a1"]  # restored once, existing kept
+tdcart.save_cart([])
 assert tdcart.format_lines([t]) == "- 제목 (a1) u"
 assert "\n" not in tdcart.format_oneline([t, t])
 task = {"id": "z9", "title": "현미경 비교", "project": "Research", "labels": ["@act/code"], "desc": "기포 측정"}
