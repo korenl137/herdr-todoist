@@ -187,7 +187,7 @@ def main(scr):
             scr.addstr(y, x0 + 5, fit("  " * depth + fold + t["title"], lw - 5), attr)
             if side_w:
                 scr.addstr(y, x0 + 1 + lw, fit(t["project"], side_w), attr | curses.A_DIM)
-            scr.addstr(y, x0 + 1 + lw + side_w, t["due"][5:].rjust(due_w), attr | curses.A_DIM)
+            scr.addstr(y, x0 + 1 + lw + side_w, t["due"][5:10].rjust(due_w), attr | curses.A_DIM)
         if shown:
             t = shown[sel][0]
             for n, line in enumerate(wrap(t["title"], rw, 2)):
