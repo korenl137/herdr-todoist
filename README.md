@@ -1,8 +1,8 @@
 # herdr-todoist
 
-Todoist plugin for [herdr](https://herdr.dev): a read-only "today" panel and a picker that sends tasks to an agent pane.
+Todoist plugin for herdr: a read-only "today" panel and a picker that sends tasks to an agent pane.
 
-Needs the [`td`](https://github.com/Doist/todoist-cli) CLI (Node >= 24; default `~/.local/share/td`, override with `TD_HOME`) and a token: `TODOIST_API_TOKEN=...` in `~/.config/todoist/.env` (override with `TODOIST_ENV`). The token is read by the plugin processes only; nothing is exported to the herdr session. The plugin never writes to Todoist.
+Needs the [`td`](https://github.com/Doist/todoist-cli) CLI (`@doist/todoist-cli`) (Node >= 24; default `~/.local/share/td`, override with `TD_HOME`) and a token: `TODOIST_API_TOKEN=...` in `~/.config/todoist/.env` (override with `TODOIST_ENV`). The token is read by the plugin processes only; nothing is exported to the herdr session. The plugin never writes to Todoist.
 
 ```sh
 herdr plugin link /path/to/herdr-todoist
