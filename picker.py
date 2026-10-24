@@ -49,9 +49,9 @@ HELP = {
 
 def build_rows(ws, cart_n):
     """Tree rows as (indent, label, count, node); node None = non-selectable header."""
-    rows = [(0, f"🛒 장바구니", cart_n, ("cart",)), (0, "즐겨찾기", None, None)]
+    rows = [(0, "Cart", cart_n, ("cart",)), (0, "Favorites", None, None)]
     rows += [(1, f["name"], len(f["tasks"]), ("filter", f)) for f in ws["filters"]]
-    rows.append((0, "프로젝트", None, None))
+    rows.append((0, "Projects", None, None))
     own = {}
     for t in ws["tasks"]:
         own[t["projectId"]] = own.get(t["projectId"], 0) + 1
