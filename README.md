@@ -21,7 +21,7 @@ Favourite filters and projects as a tree on the left, tasks on the right.
 | `↑↓`, `←/→`, `Tab` | move, fold subtasks, switch between tree and tasks |
 | `/` | search all open tasks; `↓` leaves the search box onto the first result |
 | `Space` | add or remove the task in the cart |
-| `H` | sent carts: Enter puts a cart's tasks back, `d` deletes it |
+| `h` | sent carts: Enter puts a cart's tasks back, `d` deletes it (Korean layout keys ㅗ ㅍ ㅇ work too) |
 | `v` | full task view (title, due with time, labels, url, whole description) |
 | `Enter` | type the cart into an agent pane (never submits). The pane that opened the picker is preselected |
 | `0` / `N`+`Enter` | jump to the cart / to tree row N |

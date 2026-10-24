@@ -43,7 +43,7 @@ def wrap(text, w, lines):
 
 HELP = {
     "tree": "↑↓ move  →/Tab tasks  / search  0 cart  N+Enter jump  ^R refresh  ^Y copy  ^X clear  Esc quit",
-    "tasks": "↑↓ move  ←/→ fold  Space add  v detail  H history  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
+    "tasks": "↑↓ move  ←/→ fold  Space add  v detail  h history  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
 }
 
 
@@ -152,7 +152,7 @@ def pick_history(scr, entries):
             return None
         if k in ("\n", curses.KEY_ENTER):
             return entries[sel]
-        if k == "d":
+        if k in ("d", "ㅇ"):
             tdcart.delete_history(entries.pop(sel))
             if not entries:
                 return None
@@ -311,7 +311,7 @@ def main(scr):
                 focus = "tree"
             elif k == "/":
                 filtering = True
-            elif k == "H":
+            elif k in ("h", "ㅗ"):
                 entries = tdcart.load_history()
                 e = pick_history(scr, entries) if entries else None
                 if e:
@@ -320,7 +320,7 @@ def main(scr):
                     msg = f"put {len(e['items'])} tasks back in the cart"
                 elif not entries:
                     msg = "no history yet"
-            elif k == "v" and cur:
+            elif k in ("v", "ㅍ") and cur:
                 detail(scr, next((x for x in ws["tasks"] if x["id"] == cur[0]["id"]), cur[0]))
             elif k == " " and cur:
                 tdcart.toggle(cur[0])
