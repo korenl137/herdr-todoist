@@ -1,0 +1,39 @@
+# Read-only Todoist panel for herdr. Token is read from ~/.config/todoist/.env
+# by the panel process only; nothing is exported to the herdr session.
+id = "herdr-todoist"
+name = "Todoist"
+version = "0.1.0"
+description = "Read-only Todoist 'today' panel, refreshed every 60 seconds."
+min_herdr_version = "0.8.0"
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "today"
+title = "Todoist"
+placement = "split"
+command = ["./todoist-panel.sh"]
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "open"
+title = "Open Todoist panel"
+description = "Open the Todoist today panel."
+platforms = ["linux", "macos"]
+# The server's PATH may lack ~/.local/bin, so resolve herdr through the shell.
+command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint today"]
+
+[[panes]]
+id = "picker"
+title = "Todoist picker"
+placement = "popup"
+width = 120
+height = 36
+command = ["python3", "picker.py"]
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "picker"
+title = "Open Todoist picker"
+description = "Search tasks, add them to a cart and send the cart to an agent pane."
+platforms = ["linux", "macos"]
+command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint picker"]
