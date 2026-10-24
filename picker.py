@@ -142,7 +142,7 @@ def pick_history(scr, entries):
     while True:
         W, h = min(curses.COLS - 1, WIDTH), curses.LINES - 2
         scr.erase()
-        scr.addstr(0, 0, fit("Sent carts  \u2191\u2193 move  Enter=put back in the cart  Esc=back", W).rstrip(), curses.A_BOLD)
+        scr.addstr(0, 0, fit("Sent carts  \u2191\u2193 move  Enter=put back in the cart  d=delete  Esc=back", W).rstrip(), curses.A_BOLD)
         top = window(sel, len(entries), h)
         for n, e in enumerate(entries[top : top + h]):
             line = f"{e['sent'].replace('T', ' ')}  {e['pane']:8} {len(e['items'])} tasks: " + ", ".join(i["title"] for i in e["items"])
@@ -152,6 +152,11 @@ def pick_history(scr, entries):
             return None
         if k in ("\n", curses.KEY_ENTER):
             return entries[sel]
+        if k == "d":
+            tdcart.delete_history(entries.pop(sel))
+            if not entries:
+                return None
+            sel = min(sel, len(entries) - 1)
         sel = min(max(sel + (k == curses.KEY_DOWN) - (k == curses.KEY_UP), 0), len(entries) - 1)
 
 

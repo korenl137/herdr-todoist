@@ -21,13 +21,13 @@ Favourite filters and projects as a tree on the left, tasks on the right.
 | `↑↓`, `←/→`, `Tab` | move, fold subtasks, switch between tree and tasks |
 | `/` | search all open tasks; `↓` leaves the search box onto the first result |
 | `Space` | add or remove the task in the cart |
-| `H` | sent carts: pick one to put its tasks back in the cart |
+| `H` | sent carts: Enter puts a cart's tasks back, `d` deletes it |
 | `v` | full task view (title, due with time, labels, url, whole description) |
 | `Enter` | type the cart into an agent pane (never submits). The pane that opened the picker is preselected |
 | `0` / `N`+`Enter` | jump to the cart / to tree row N |
 | `^Y` / `^X` / `^R` | copy the cart (OSC 52) / clear it / refresh from Todoist |
 
-After a send the cart is emptied and appended to `history.jsonl` next to `cart.json` in the plugin config directory (`~/.config/herdr/plugins/config/herdr-todoist/`). `^X` clears without a record.
+After a send the cart is emptied and appended to `history.jsonl` next to `cart.json` in the plugin config directory (`~/.config/herdr/plugins/config/herdr-todoist/`). `^X` clears without a record. The newest 100 sends are kept.
 
 herdr is found through `HERDR_BIN_PATH` (set by herdr), else `herdr` on `PATH`. Popup size: `width`/`height` in `herdr-plugin.toml`. Tests: `python3 test_tdcart.py`.
 

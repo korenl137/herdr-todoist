@@ -15,6 +15,13 @@ assert len(h) == 1 and h[0]["items"] == [t]
 tdcart.toggle({"id": "b2", "title": "b", "url": "u"}); tdcart.restore(h[0]); tdcart.restore(h[0])
 assert [i["id"] for i in tdcart.load_cart()] == ["b2", "a1"]  # restored once, existing kept
 tdcart.save_cart([])
+tdcart.HISTORY_MAX = 2
+for n in range(3):
+    tdcart.save_cart([{"id": f"n{n}", "title": "t", "url": "u"}]); tdcart.archive_cart(f"p{n}")
+assert [e["pane"] for e in tdcart.load_history()] == ["p2", "p1"]  # capped, newest first
+tdcart.delete_history(tdcart.load_history()[0])
+assert [e["pane"] for e in tdcart.load_history()] == ["p1"]
+tdcart.HISTORY_MAX = 100
 assert tdcart.format_lines([t]) == "- 제목 (a1) u"
 assert "\n" not in tdcart.format_oneline([t, t])
 task = {"id": "z9", "title": "현미경 비교", "project": "Research", "labels": ["@act/code"], "desc": "기포 측정"}

@@ -65,13 +65,30 @@ def save_cart(items):
     tmp.replace(CART)
 
 
+HISTORY_MAX = 100  # oldest sent carts are dropped past this
+
+
+def _write_history(entries):
+    """Rewrite history.jsonl from `entries`, oldest first."""
+    path = CART.parent / "history.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in entries))
+    tmp.replace(path)
+
+
 def archive_cart(pane_id):
-    """Append the cart to history.jsonl (one line per send), then empty it."""
+    """Append the cart to history.jsonl (one line per send, newest HISTORY_MAX kept), then empty it."""
     items = load_cart()
     if items:
-        with (CART.parent / "history.jsonl").open("a") as f:
-            f.write(json.dumps({"sent": datetime.now().isoformat(timespec="seconds"), "pane": pane_id, "items": items}, ensure_ascii=False) + "\n")
+        entry = {"sent": datetime.now().isoformat(timespec="seconds"), "pane": pane_id, "items": items}
+        _write_history((load_history()[::-1] + [entry])[-HISTORY_MAX:])
     save_cart([])
+
+
+def delete_history(entry):
+    """Remove one sent cart from the history."""
+    _write_history([e for e in load_history()[::-1] if e != entry])
 
 
 def load_history():
