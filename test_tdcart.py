@@ -26,3 +26,4 @@ assert picker.window(5, 50, 10) == 0 and picker.window(40, 50, 10) == 31 and pic
 assert picker.fit("🗓️a", 3) == "🗓a " and picker.fit("한글ab", 6) == "한글ab" and picker.fit("한글abc", 6) == "한글a…"
 assert picker.wrap("가나다라마바사", 6, 2) == ["가나다", "라마… "]
 print("ok picker")
+assert picker.wrap_all("가나다라마\n\nab", 6) == ["가나다", "라마", "", "ab"]

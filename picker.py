@@ -43,7 +43,7 @@ def wrap(text, w, lines):
 
 HELP = {
     "tree": "↑↓ move  →/Tab tasks  / search  0 cart  N+Enter jump  ^R refresh  ^Y copy  ^X clear  Esc quit",
-    "tasks": "↑↓ move  ←/→ fold  Space add  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
+    "tasks": "↑↓ move  ←/→ fold  Space add  v detail  Enter send  / search  0 cart  ^R refresh  ^Y copy  Tab tree  Esc back",
 }
 
 
@@ -103,6 +103,37 @@ def source_pane():
         return json.loads(os.environ["HERDR_PLUGIN_CONTEXT_JSON"])["focused_pane_id"]
     except (KeyError, ValueError):
         return os.environ.get("TODOIST_SRC_PANE") or None
+
+
+def wrap_all(text, w):
+    """Every row of `text` broken to `w` cells; blank lines kept."""
+    rows = []
+    for para in text.split("\n"):
+        while width(para) > w:
+            part = clip(para, w)
+            rows, para = rows + [part], para[len(part):]
+        rows.append(para)
+    return rows
+
+
+def detail(scr, t):
+    """Full task view: nothing cut, \u2191\u2193 scroll, any other key closes."""
+    meta = [f"{k}: {v}" for k, v in (("project", t["project"]), ("due", t["due"]), ("priority", tdcart.priority_tag(t.get("priority", 1)) or "-"),
+                                     ("labels", ", ".join(t.get("labels", []))), ("id", t["id"]), ("url", t.get("url", ""))) if v]
+    top = 0
+    while True:
+        W, h = min(curses.COLS - 1, WIDTH), curses.LINES - 2
+        rows = wrap_all(t["title"], W) + [""] + [r for m in meta for r in wrap_all(m, W)] + [""] + wrap_all(t.get("desc", ""), W)
+        top = min(max(top, 0), max(len(rows) - h, 0))
+        scr.erase()
+        scr.addstr(0, 0, fit("\u2191\u2193 scroll  any other key = back", W).rstrip(), curses.A_DIM)
+        for n, r in enumerate(rows[top : top + h]):
+            scr.addstr(1 + n, 0, fit(r, W), curses.A_BOLD if top + n < len(wrap_all(t["title"], W)) else 0)
+        k = scr.get_wch()
+        if k in (curses.KEY_DOWN, curses.KEY_UP):
+            top += (k == curses.KEY_DOWN) - (k == curses.KEY_UP)
+        else:
+            return
 
 
 def choose_agent(scr, agents):
@@ -256,6 +287,8 @@ def main(scr):
                 focus = "tree"
             elif k == "/":
                 filtering = True
+            elif k == "v" and cur:
+                detail(scr, next((x for x in ws["tasks"] if x["id"] == cur[0]["id"]), cur[0]))
             elif k == " " and cur:
                 tdcart.toggle(cur[0])
                 cart_ids = {i["id"] for i in tdcart.load_cart()}
