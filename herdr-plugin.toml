@@ -36,4 +36,4 @@ id = "picker"
 title = "Open Todoist picker"
 description = "Search tasks, add them to a cart and send the cart to an agent pane."
 platforms = ["linux", "macos"]
-command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint picker"]
+command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint picker --env TODOIST_SRC_PANE=\"${HERDR_PANE_ID:-}\""]

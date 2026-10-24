@@ -1,5 +1,6 @@
 """Data, cart and sink layers for the Todoist picker. Stdlib only; no UI here."""
 import json, os, re, subprocess, sys
+from datetime import datetime
 from pathlib import Path
 
 TD_HOME = Path(os.environ.get("TD_HOME", Path.home() / ".local/share/td"))
@@ -62,6 +63,15 @@ def save_cart(items):
     tmp = CART.with_suffix(".tmp")
     tmp.write_text(json.dumps(items, ensure_ascii=False, indent=1))
     tmp.replace(CART)
+
+
+def archive_cart(pane_id):
+    """Append the cart to history.jsonl (one line per send), then empty it."""
+    items = load_cart()
+    if items:
+        with (CART.parent / "history.jsonl").open("a") as f:
+            f.write(json.dumps({"sent": datetime.now().isoformat(timespec="seconds"), "pane": pane_id, "items": items}, ensure_ascii=False) + "\n")
+    save_cart([])
 
 
 def toggle(task):

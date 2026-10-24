@@ -1,5 +1,5 @@
 """curses picker: browse favourites/projects as a tree, Tab adds tasks to a cart, Enter sends it to an agent pane."""
-import curses, sys, unicodedata
+import curses, json, os, sys, unicodedata
 import tdcart
 
 WIDTH = 130  # cap total width: an overlay can be far wider than is readable
@@ -97,8 +97,17 @@ def review(scr, items, question):
             return False
 
 
+def source_pane():
+    """Pane the plugin action was invoked from (the focused pane), or None."""
+    try:
+        return json.loads(os.environ["HERDR_PLUGIN_CONTEXT_JSON"])["focused_pane_id"]
+    except (KeyError, ValueError):
+        return os.environ.get("TODOIST_SRC_PANE") or None
+
+
 def choose_agent(scr, agents):
-    sel = 0
+    src = source_pane()
+    sel = next((n for n, a in enumerate(agents) if a["pane_id"] == src), 0)  # default: the pane that opened the picker
     while True:
         scr.erase()
         scr.addstr(0, 0, "Send to which agent? (Enter=send, Esc=back)")
@@ -189,8 +198,8 @@ def main(scr):
         if filtering:
             if k == "\x1b":
                 text, filtering = "", False
-            elif k in ("\n", curses.KEY_ENTER):
-                filtering = False
+            elif k in ("\n", curses.KEY_ENTER, curses.KEY_DOWN):
+                filtering = False  # Down leaves the search box with the first result selected
             elif k in ("\x7f", curses.KEY_BACKSPACE):
                 text = text[:-1]
             elif k == "\x15":
@@ -258,7 +267,9 @@ def main(scr):
                 a = choose_agent(scr, agents)
                 if a:
                     tdcart.send_to_pane(a["pane_id"], tdcart.format_oneline(tdcart.load_cart()))
-                    msg = f"typed into {a['pane_id']} (not submitted)"
+                    tdcart.archive_cart(a["pane_id"])
+                    cart_ids = set()
+                    msg = f"typed into {a['pane_id']} (not submitted); cart archived"
 
 
 if __name__ == "__main__":

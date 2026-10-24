@@ -1,4 +1,4 @@
-import os, tempfile, tdcart
+import json, os, tempfile, tdcart
 from pathlib import Path
 
 tdcart.CART = Path(tempfile.mkdtemp()) / "sub" / "cart.json"
@@ -6,6 +6,8 @@ t = {"id": "a1", "title": "제목", "url": "u"}
 assert tdcart.load_cart() == []
 assert tdcart.toggle(t) is True and tdcart.load_cart() == [t]
 assert tdcart.toggle(t) is False and tdcart.load_cart() == []
+tdcart.toggle(t); tdcart.archive_cart("w:p")
+assert tdcart.load_cart() == [] and json.loads((tdcart.CART.parent / "history.jsonl").read_text())["items"] == [t]
 assert tdcart.format_lines([t]) == "- 제목 (a1) u"
 assert "\n" not in tdcart.format_oneline([t, t])
 task = {"id": "z9", "title": "현미경 비교", "project": "Research", "labels": ["@act/code"], "desc": "기포 측정"}
