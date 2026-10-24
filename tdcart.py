@@ -6,7 +6,7 @@ from pathlib import Path
 TD_HOME = Path(os.environ.get("TD_HOME", Path.home() / ".local/share/td"))
 ENV_FILE = Path(os.environ.get("TODOIST_ENV", Path.home() / ".config/todoist/.env"))
 CART = Path(os.environ.get("TODOIST_CART", Path.home() / ".config/herdr/plugins/config/herdr-todoist/cart.json"))
-HERDR = os.environ.get("HERDR_BIN", str(Path.home() / ".local/bin/herdr"))
+HERDR = os.environ.get("HERDR_BIN_PATH", "herdr")
 
 
 def _env():

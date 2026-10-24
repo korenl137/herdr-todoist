@@ -19,8 +19,8 @@ id = "open"
 title = "Open Todoist panel"
 description = "Open the Todoist today panel."
 platforms = ["linux", "macos"]
-# The server's PATH may lack ~/.local/bin, so resolve herdr through the shell.
-command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint today"]
+# herdr passes its own path as HERDR_BIN_PATH; fall back to PATH.
+command = ["/bin/sh", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin herdr-todoist --entrypoint today"]
 
 [[panes]]
 id = "picker"
@@ -36,4 +36,4 @@ id = "picker"
 title = "Open Todoist picker"
 description = "Search tasks, add them to a cart and send the cart to an agent pane."
 platforms = ["linux", "macos"]
-command = ["/bin/sh", "-c", "exec \"${HERDR_BIN:-$HOME/.local/bin/herdr}\" plugin pane open --plugin herdr-todoist --entrypoint picker --env TODOIST_SRC_PANE=\"${HERDR_PANE_ID:-}\""]
+command = ["/bin/sh", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin herdr-todoist --entrypoint picker --env HERDR_BIN_PATH=\"${HERDR_BIN_PATH:-herdr}\" --env TODOIST_SRC_PANE=\"${HERDR_PANE_ID:-}\""]
