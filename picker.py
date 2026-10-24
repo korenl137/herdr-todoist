@@ -47,10 +47,15 @@ HELP = {
 }
 
 
+def plain_label(name):
+    """Drop emoji and symbols: their cell width differs between curses and the terminal."""
+    return "".join(c for c in name if unicodedata.category(c) != "So" and c != "\ufe0f").strip()
+
+
 def build_rows(ws, cart_n):
     """Tree rows as (indent, label, count, node); node None = non-selectable header."""
-    rows = [(0, f"🛒 장바구니", cart_n, ("cart",)), (0, "즐겨찾기", None, None)]
-    rows += [(1, f["name"], len(f["tasks"]), ("filter", f)) for f in ws["filters"]]
+    rows = [(0, "장바구니", cart_n, ("cart",)), (0, "즐겨찾기", None, None)]
+    rows += [(1, plain_label(f["name"]), len(f["tasks"]), ("filter", f)) for f in ws["filters"]]
     rows.append((0, "프로젝트", None, None))
     own = {}
     for t in ws["tasks"]:
@@ -59,7 +64,7 @@ def build_rows(ws, cart_n):
     def walk(parent, depth):
         for p in ws["projects"]:
             if p["parentId"] == parent:
-                rows.append((depth, p["name"], own.get(p["id"], 0), ("project", p)))
+                rows.append((depth, plain_label(p["name"]), own.get(p["id"], 0), ("project", p)))
                 walk(p["id"], depth + 1)
     walk(None, 1)
     return rows
