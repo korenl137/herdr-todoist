@@ -29,12 +29,13 @@ Bind a key in `~/.config/herdr-app/keys.json`: `"ctrl-alt-o": "mod.open:todoist"
 | `/` | search all open tasks (title, project, labels, description, id) |
 | `Space` or click | add or remove the task in the cart |
 | `v` | full task view |
-| `Enter` | copy the cart as one line, record it in history, empty the cart |
+| `Enter` | paste the cart as one line into the terminal underneath (no submit), record it in history, empty the cart |
+| `c` | same, but only copy it to the clipboard |
 | `h` | sent carts: `Enter` puts one back, `d` deletes it |
 | `Ctrl+R` / `Ctrl+X` | refresh from Todoist / clear the cart without a record |
 
-The old picker typed the cart into an agent pane without pressing Enter. herdr-app has no way to do
-that (`hc send` always submits, `hc keys` cannot type Korean), so the cart goes to the clipboard.
+Enter closes the picker and runs `terminal.paste` (bracketed paste, so an agent gets text, not a submit).
+Unverified on a real session at the time of writing: check that focus returns to the terminal first.
 
 Cart and history live in `~/.config/herdr-todoist/` (`cart.json`, `history.jsonl`, newest 100 sends).
 The first run copies the old plugin's files from `~/.config/herdr/plugins/config/herdr-todoist/`.

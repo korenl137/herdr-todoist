@@ -1,9 +1,9 @@
 // Todoist picker. Left: Cart, favourite filters, projects. Right: tasks.
-// Space adds a task to the cart, Enter copies the cart as one line (paste it into an agent yourself).
+// Space adds a task to the cart, Enter pastes the cart as one line into the terminal that was focused (it does not submit), c only copies it.
 // All data and the cart live in the `herdr-todoist` binary (Rust); this file only draws and calls it.
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Scrollbar, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
-import { exec, focused, notify, props, closeOverlay, theme } from "herdr";
+import { exec, focused, notify, props, closeOverlay, run, theme } from "herdr";
 
 const BIN = "herdr-todoist";
 const W = 1000, H = 620, TREE_W = 250;
@@ -155,8 +155,9 @@ export default class Todoist extends View {
     this.act(cx, ["toggle", JSON.stringify(t)], null, (cx) => this.refreshCart(cx));
   }
 
-  // Copies the cart as one line, records it as sent, empties it.
-  send(cx) {
+  // Copies the cart as one line, records it as sent, empties it. With paste, closes the picker and pastes
+  // into the terminal underneath (bracketed paste: the agent gets text, not a submit).
+  send(cx, paste) {
     if (!this.cart.length) { this.msg = "cart is empty"; return cx.notify(); }
     const target = focused()?.agent ?? focused()?.terminal ?? "clipboard";
     cx.spawn(async (cx) => {
@@ -165,9 +166,10 @@ export default class Todoist extends View {
       try { await copy(r.text); } catch (e) { this.msg = String(e.message ?? e); return cx.notify(); }
       const a = await call(["archive", target]);
       if (a.error) this.msg = a.error;
-      else { this.msg = `Copied ${r.count} tasks. Paste into your agent (Ctrl+Shift+V); restore from History (h).`; notify({ title: "Todoist", body: `Copied ${r.count} tasks`, timeout: 2500 }); }
+      else { this.msg = `Copied ${r.count} tasks. Paste into your agent (Ctrl+Shift+V); restore from History (h).`; notify({ title: "Todoist", body: `${paste ? "Pasted" : "Copied"} ${r.count} tasks`, timeout: 2500 }); }
       this.refreshCart(cx);
       cx.notify();
+      if (paste && !a.error) { closeOverlay(props().overlay); run("terminal.paste"); }
     });
   }
 
@@ -231,7 +233,8 @@ export default class Todoist extends View {
       else if (k === "left" && row?.kids && !this.collapsed.has(row.t.id) && !cur.searching) this.collapsed.add(row.t.id);
       else if (k === "left" || k === "tab") this.focus = "tree";
       else if (k === " " && row) this.toggleCart(cx, row.t);
-      else if (k === "enter") this.send(cx);
+      else if (k === "enter") this.send(cx, true);
+      else if (k === "c") this.send(cx, false);
       else if (k === "v" && row) this.mode = "detail";
       else if (k === "h") this.openHistory(cx);
       else return;
@@ -246,7 +249,7 @@ export default class Todoist extends View {
     const header = h_flex().h(28).flex_none().items_center().gap(10)
       .child(div().text_size(15).font_semibold().child("Todoist"))
       .child(div().text_size(11).text_color(t.dim).child(`cart ${this.cart.length}${this.busy ? " · working…" : ""}`))
-      .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
+      .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter paste · c copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
     const status = div().h(16).flex_none().text_size(11.5).text_color(t.muted).truncate().child(this.msg);
 
     if (this.mode === "history") {
