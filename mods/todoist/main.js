@@ -242,13 +242,23 @@ export default class Todoist extends View {
     done();
   }
 
+  // The cart, always on screen above the status line: a count badge and the task titles.
+  cartBar(t) {
+    const n = this.cart.length;
+    return h_flex().h(34).flex_none().px(10).gap(10).items_center().rounded(8).border_1()
+      .border_color(n ? t.accent : t.input).bg(t.background)
+      .child(div().flex_none().font_semibold().text_color(n ? t.accent : t.dim).child(`Cart ${n}`))
+      .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(n ? t.foreground : t.dim)
+        .child(n ? this.cart.map((c) => c.title).join("  ·  ") : "Space adds the highlighted task"));
+  }
+
   render(cx) {
     const t = theme();
     const root = v_flex().id("todoist").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
       .w(W).h(H).min_h(0).p(14).gap(8).bg(t.popover).text_size(13).text_color(t.foreground);
     const header = h_flex().h(28).flex_none().items_center().gap(10)
       .child(div().text_size(15).font_semibold().child("Todoist"))
-      .child(div().text_size(11).text_color(t.dim).child(`cart ${this.cart.length}${this.busy ? " · working…" : ""}`))
+      .child(div().text_size(11).text_color(t.dim).child(this.busy ? "working…" : ""))
       .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter paste · c copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
     const status = div().h(16).flex_none().text_size(11.5).text_color(t.muted).truncate().child(this.msg);
 
@@ -319,6 +329,7 @@ export default class Todoist extends View {
             .child(h_flex().w(260).h(30).flex_none().px(10).items_center().rounded(8).border_1().border_color(this.query ? t.accent : t.input).bg(t.background)
               .child(Input.new(this.input).flex_1().h_full().text_size(12.5).text_color(t.foreground))))
           .child(list).child(detail)))
+      .child(this.cartBar(t))
       .child(status);
   }
 }
