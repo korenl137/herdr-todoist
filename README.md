@@ -36,7 +36,6 @@ Bind a key in `~/.config/herdr-app/keys.json`: `"ctrl-alt-o": "mod.open:todoist"
 | `Ctrl+R` / `Ctrl+X` | refresh from Todoist / clear the cart without a record |
 
 Enter closes the picker and runs `terminal.paste` (bracketed paste, so an agent gets text, not a submit).
-Unverified on a real session at the time of writing: check that focus returns to the terminal first.
 
 Cart and history live in `~/.config/herdr-todoist/` (`cart.json`, `history.jsonl`, newest 100 sends).
 The first run copies the old plugin's files from `~/.config/herdr/plugins/config/herdr-todoist/`.
