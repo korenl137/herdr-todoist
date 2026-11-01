@@ -81,7 +81,7 @@ pub struct Workspace { pub projects: Vec<Value>, pub filters: Vec<Value>, pub ta
 
 /// Favourite filters with their tasks, every project, every open task. The td calls run in parallel.
 pub fn workspace(env: &Env) -> Result<Workspace> {
-    let projects = td(env, &["project", "list"])?;
+    let projects = td(env, &["project", "list", "--all"])?;
     let names: HashMap<String, String> = projects.iter()
         .filter_map(|p| Some((p["id"].as_str()?.to_string(), p["name"].as_str()?.to_string()))).collect();
     let filters: Vec<Value> = td(env, &["filter", "list"])?.into_iter().filter(|f| f["isFavorite"].as_bool() == Some(true)).collect();
@@ -89,7 +89,7 @@ pub fn workspace(env: &Env) -> Result<Workspace> {
         let all = s.spawn(|| td(env, &["task", "list", "--all"]));
         let each: Vec<_> = filters.iter().map(|f| {
             let q = f["query"].as_str().unwrap_or_default().to_string();
-            s.spawn(move || td(env, &["task", "list", "--filter", &q]))
+            s.spawn(move || td(env, &["task", "list", "--filter", &q, "--all"]))
         }).collect();
         let all = all.join().map_err(|_| anyhow::anyhow!("td thread panicked"))??;
         let mut per = vec![];
