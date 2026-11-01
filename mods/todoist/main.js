@@ -2,11 +2,12 @@
 // Space adds a task to the cart, Enter copies the cart as one line (paste it into an agent yourself).
 // All data and the cart live in the `herdr-todoist` binary (Rust); this file only draws and calls it.
 import { View, div } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, Scrollbar, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
 import { exec, focused, notify, props, closeOverlay, theme } from "herdr";
 
 const BIN = "herdr-todoist";
 const W = 1000, H = 620, TREE_W = 250;
+const ROW = 30, TREE_ROW = 28;     // fixed row heights: the virtual lists place rows by these
 
 // The binary prints JSON for success and for failure ({"error": ...}).
 async function call(args) {
@@ -61,12 +62,18 @@ export default class Todoist extends View {
     this.query = "";
     this.msg = "loading…";
     this.busy = false;
+    this.listScroll = VirtualListScrollHandle.new();
+    this.treeScroll = VirtualListScrollHandle.new();
+    this.histScroll = VirtualListScrollHandle.new();
     this.input = InputState.new({ value: "" });
-    this.input.on("change", (_e, cx) => { this.query = this.input.value(); this.sel = 0; cx.notify(); });
+    this.input.on("change", (_e, cx) => { this.query = this.input.value(); this.sel = 0; this.follow(); cx.notify(); });
     this.input.on("submit", (_e, cx) => { this.handle.focus(); this.focus = "tasks"; cx.notify(); });
+    this.typing = false;
+    this.input.on("focus", (_e, cx) => { this.typing = true; cx.notify(); });
+    this.input.on("blur", (_e, cx) => { this.typing = false; cx.notify(); });
     this.handle = cx.focus_handle();
     this.handle.focus();
-    cx.timer.after(300, () => this.handle.focus());
+    cx.timer.after(300, () => { if (!this.typing) this.handle.focus(); });
     this.reload(cx, true);
   }
 
@@ -87,7 +94,7 @@ export default class Todoist extends View {
     cx.spawn(async (cx) => {
       const [ws, cart] = await Promise.all([call(["workspace"]), call(["cart"])]);
       if (ws.error) this.msg = ws.error;
-      else { this.ws = ws; this.msg = first ? "" : "refreshed"; }
+      else { this.ws = ws; this.msg = first ? "" : "refreshed"; if (first && this.rows()[2]?.node) this.tsel = 2; }
       if (!cart.error) this.cart = cart;
       cx.notify();
     });
@@ -168,9 +175,31 @@ export default class Todoist extends View {
     this.act(cx, ["history"], (r) => { this.history = r; this.hsel = 0; this.mode = "history"; if (!r.length) { this.mode = "tasks"; this.msg = "no history yet"; } });
   }
 
+  // Brings each list's cursor row on screen. The handle moves to the nearest edge and does
+  // nothing when the row is already visible, so it is safe to call after every key.
+  follow() {
+    for (const [h, i] of [[this.listScroll, this.sel], [this.treeScroll, this.tsel], [this.histScroll, this.hsel]]) {
+      try { h.scroll_to_item(i); } catch { /* list not on screen yet */ }
+    }
+  }
+
+  // A scrolling list of fixed-height rows. `row(index)` draws one; clicks arrive as the row's key.
+  vlist(id, n, size, key, row, handle, onClick) {
+    return div().flex_1().min_w(0).min_h(0).relative()
+      .child(v_virtual_list(id, n, size, key, (range) => { const out = []; for (let i = range.start; i < range.end; i++) out.push(row(i)); return out; })
+        .track_scroll(handle).on_item_click(onClick).size_full())
+      .child(Scrollbar.vertical(id).absolute().inset_0());
+  }
+
   key(e, cx) {
     const k = e.key;
-    const done = () => { cx.stop_propagation(); cx.notify(); };
+    const done = () => { this.follow(); cx.stop_propagation(); cx.notify(); };
+    if (this.typing) {                       // the search box owns letters; Esc clears it, Down or Enter leave it
+      if (k === "escape") { this.input.set_value(""); this.query = ""; this.handle.focus(); }
+      else if (k === "down" || k === "enter") this.handle.focus();
+      else return;
+      return done();
+    }
     if (this.mode === "detail") { if (k === "escape" || k === "v" || k === "enter") { this.mode = "tasks"; } else return; return done(); }
     if (this.mode === "history") {
       const n = this.history.length;
@@ -214,20 +243,21 @@ export default class Todoist extends View {
     const t = theme();
     const root = v_flex().id("todoist").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
       .w(W).h(H).min_h(0).p(14).gap(8).bg(t.popover).text_size(13).text_color(t.foreground);
-    const header = h_flex().items_center().gap(10)
+    const header = h_flex().h(28).flex_none().items_center().gap(10)
       .child(div().text_size(15).font_semibold().child("Todoist"))
       .child(div().text_size(11).text_color(t.dim).child(`cart ${this.cart.length}${this.busy ? " · working…" : ""}`))
-      .child(div().flex_1().text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
-    const status = div().h(16).text_size(11.5).text_color(t.muted).truncate().child(this.msg);
+      .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
+    const status = div().h(16).flex_none().text_size(11.5).text_color(t.muted).truncate().child(this.msg);
 
     if (this.mode === "history") {
       return root.child(header).child(div().text_color(t.muted).child("Sent carts: Enter puts a cart back, d deletes it, Esc returns"))
-        .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar().gap(2).children(this.history.map((e, i) =>
-          h_flex().id(`h-${e.sent}`).gap(10).px(8).py(5).rounded(7).bg(i === this.hsel ? t.selected : t.popover).hover((s) => s.bg(t.hover))
-            .on_click(() => { this.hsel = i; cx.notify(); })
-            .child(div().w(150).text_color(t.dim).child(e.sent.replace("T", " ")))
-            .child(div().w(70).text_color(t.dim).truncate().child(e.pane))
-            .child(div().flex_1().truncate().child(`${e.items.length} tasks: ${e.items.map((x) => x.title).join(", ")}`)))))
+        .child(this.vlist("td-history", this.history.length, ROW, (i) => this.history[i].sent, (i) => {
+          const e = this.history[i];
+          return h_flex().h(ROW).w_full().px(8).gap(10).items_center().rounded(7).bg(i === this.hsel ? t.selected : t.popover)
+            .child(div().w(150).flex_none().text_color(t.dim).child(e.sent.replace("T", " ")))
+            .child(div().w(70).flex_none().text_color(t.dim).truncate().child(e.pane))
+            .child(div().flex_1().min_w(0).truncate().child(`${e.items.length} tasks: ${e.items.map((x) => x.title).join(", ")}`));
+        }, this.histScroll, (key) => { const i = this.history.findIndex((x) => x.sent === key); if (i >= 0) { this.hsel = i; cx.notify(); } }))
         .child(status);
     }
 
@@ -239,50 +269,52 @@ export default class Todoist extends View {
       const full = this.ws?.tasks.find((x) => x.id === picked.id) ?? picked;
       const meta = [["project", full.project], ["due", full.due], ["priority", tag(full.priority) || "-"], ["labels", (full.labels ?? []).join(", ")], ["id", full.id], ["url", full.url]].filter(([, v]) => v);
       return root.child(header)
-        .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar().gap(6)
+        .child(v_flex().id("td-detail").flex_1().min_h(0).overflow_y_scrollbar().gap(6)
           .child(div().text_size(15).font_semibold().child(full.title))
           .children(meta.map(([k, v]) => div().text_color(t.muted).child(`${k}: ${v}`)))
           .child(div().pt(6).text_color(t.foreground).child(full.desc || "(no description)")))
         .child(div().text_size(11).text_color(t.dim).child("Esc closes")).child(status);
     }
 
-    const tree = v_flex().w(TREE_W).h_full().min_h(0).overflow_y_scrollbar().gap(1).children(this.rows().map((r, i) => {
+    const rows = this.rows();
+    const tree = v_flex().w(TREE_W).flex_none().h_full().min_h(0).child(this.vlist("td-tree", rows.length, TREE_ROW, (i) => String(i), (i) => {
+      const r = rows[i];
       const on = r.node && i === this.tsel;
-      const el = h_flex().id(`tr-${i}`).gap(6).px(8).py(4).rounded(7).items_center()
+      return h_flex().h(TREE_ROW).w_full().px(8).gap(6).rounded(7).items_center()
         .bg(on ? (this.focus === "tree" ? t.selected : t.hover) : t.popover)
-        .child(div().w(r.indent * 14).h(1))
-        .child(div().flex_1().truncate().text_color(r.node ? t.foreground : t.dim).text_size(r.node ? 13 : 11).child(r.label))
-        .child(div().text_size(11).text_color(t.dim).child(r.count ? String(r.count) : ""));
-      return r.node ? el.hover((s) => s.bg(t.hover)).on_click(() => { this.tsel = i; this.sel = 0; this.focus = "tasks"; cx.notify(); }) : el;
-    }));
+        .child(div().w(r.indent * 14).h(1).flex_none())
+        .child(div().flex_1().min_w(0).truncate().text_color(r.node ? t.foreground : t.dim).text_size(r.node ? 13 : 11).child(r.label))
+        .child(div().flex_none().text_size(11).text_color(t.dim).child(r.count ? String(r.count) : ""));
+    }, this.treeScroll, (key) => { const i = Number(key); if (rows[i]?.node) { this.tsel = i; this.sel = 0; this.focus = "tasks"; this.follow(); cx.notify(); } }));
 
     const showProject = cur.searching || cur.node.kind !== "project";
-    const list = v_flex().flex_1().min_h(0).overflow_y_scrollbar().gap(1).children(cur.shown.map(({ t: x, depth, kids }, i) => {
+    const list = this.vlist("td-list", cur.shown.length, ROW, (i) => cur.shown[i].t.id, (i) => {
+      const { t: x, depth, kids } = cur.shown[i];
       const inCart = this.cart.some((c) => c.id === x.id);
       const p = tag(x.priority);
-      return h_flex().id(`tk-${x.id}`).gap(8).px(8).py(4).rounded(7).items_center()
-        .bg(i === sel && this.focus === "tasks" ? t.selected : t.popover).hover((s) => s.bg(t.hover))
-        .on_click(() => { this.sel = i; this.focus = "tasks"; this.toggleCart(cx, x); })
-        .child(div().w(14).text_color(t.accent).child(inCart ? "✓" : ""))
-        .child(div().w(22).text_size(11).font_semibold().text_color(p === "P1" ? t.blocked : t.working).child(p))
-        .child(div().w(depth * 16).h(1))
-        .child(div().flex_1().truncate().child((kids ? (this.collapsed.has(x.id) ? "+ " : "- ") : "") + x.title))
-        .when(showProject, (el) => el.child(div().w(130).truncate().text_size(11.5).text_color(t.dim).child(x.project)))
-        .child(div().w(44).text_size(11.5).text_color(t.dim).child((x.due ?? "").slice(5, 10)));
-    }));
+      return h_flex().h(ROW).w_full().px(8).gap(8).rounded(7).items_center()
+        .bg(i === sel && this.focus === "tasks" ? t.selected : t.popover)
+        .child(div().w(14).flex_none().text_color(t.accent).child(inCart ? "✓" : ""))
+        .child(div().w(22).flex_none().text_size(11).font_semibold().text_color(p === "P1" ? t.blocked : t.working).child(p))
+        .child(div().w(depth * 16).h(1).flex_none())
+        .child(div().flex_1().min_w(0).truncate().child((kids ? (this.collapsed.has(x.id) ? "+ " : "- ") : "") + x.title))
+        .when(showProject, (el) => el.child(div().w(130).flex_none().truncate().text_size(11.5).text_color(t.dim).child(x.project)))
+        .child(div().w(44).flex_none().text_size(11.5).text_color(t.dim).child((x.due ?? "").slice(5, 10)));
+    }, this.listScroll, (key) => { const i = cur.shown.findIndex((r) => r.t.id === key); if (i >= 0) { this.sel = i; this.focus = "tasks"; this.toggleCart(cx, cur.shown[i].t); } });
 
-    const detail = v_flex().h(74).gap(2).pt(6)
+    const detail = v_flex().h(80).flex_none().gap(2).pt(6)
       .child(div().font_semibold().truncate().child(picked?.title ?? ""))
       .child(div().text_size(11).text_color(t.dim).truncate().child(picked ? [picked.project, picked.due, picked.id].filter(Boolean).join(" · ") : ""))
       .child(div().text_size(11.5).text_color(t.muted).max_h(32).overflow_hidden().child(plain(picked?.desc)));
 
     return root.child(header)
-      .child(h_flex().flex_1().min_h(0).gap(10)
+      .child(h_flex().flex_1().min_h(0).items_start().gap(10)
         .child(tree)
-        .child(v_flex().flex_1().min_h(0).gap(6)
-          .child(h_flex().items_center().gap(8)
-            .child(div().flex_1().text_color(t.muted).truncate().child(cur.title))
-            .child(Input.new(this.input).w(260).h(30).px(10).rounded(8).border_1().border_color(this.query ? t.accent : t.input).bg(t.background).text_size(12.5).text_color(t.foreground)))
+        .child(v_flex().flex_1().min_w(0).h_full().min_h(0).gap(6)
+          .child(h_flex().h(32).flex_none().items_center().gap(8)
+            .child(div().flex_1().min_w(0).text_color(t.muted).truncate().child(cur.title))
+            .child(h_flex().w(260).h(30).flex_none().px(10).items_center().rounded(8).border_1().border_color(this.query ? t.accent : t.input).bg(t.background)
+              .child(Input.new(this.input).flex_1().h_full().text_size(12.5).text_color(t.foreground))))
           .child(list).child(detail)))
       .child(status);
   }
