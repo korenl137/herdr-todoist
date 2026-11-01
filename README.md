@@ -1,35 +1,50 @@
 # herdr-todoist
 
-Todoist plugin for herdr: a read-only "today" panel and a picker that sends tasks to an agent pane.
+Todoist task picker for [herdr-app](https://herdr.dev). A Rust binary (`herdr-todoist`) does the work;
+a JavaScript mod (`mods/todoist`) draws the dialog and calls it.
 
-Needs the [`td`](https://github.com/Doist/todoist-cli) CLI (`@doist/todoist-cli`) (Node >= 24; default `~/.local/share/td`, override with `TD_HOME`) and a token: `TODOIST_API_TOKEN=...` in `~/.config/todoist/.env` (override with `TODOIST_ENV`). The token is read by the plugin processes only; nothing is exported to the herdr session. The plugin never writes to Todoist.
+Favourite filters and projects as a tree on the left, tasks on the right. Pick tasks into a cart,
+copy the cart as one line, paste it into an agent. The plugin never writes to Todoist.
+
+## Needs
+
+- the [`td`](https://github.com/Doist/todoist-cli) CLI (`@doist/todoist-cli`, Node >= 24); default `~/.local/share/td`, override with `TD_HOME`
+- `TODOIST_API_TOKEN=...` in `~/.config/todoist/.env` (override with `TODOIST_ENV`); only the binary reads it and passes it to `td`
+- `wl-copy` (package `wl-clipboard`) for the clipboard
+
+## Install
 
 ```sh
-herdr plugin link /path/to/herdr-todoist
-herdr plugin action invoke herdr-todoist.open     # today panel, refreshed every 60 s
-herdr plugin action invoke herdr-todoist.picker   # picker popup
+cargo install --path .                          # herdr-todoist into ~/.cargo/bin
+herdr-mod-manager install . --accept            # or copy mods/todoist to ~/.config/herdr-app/mods/
 ```
 
-Bind the picker to a key in your herdr config by pointing a keybinding at the command `herdr-todoist.picker`.
+Bind a key in `~/.config/herdr-app/keys.json`: `"ctrl-alt-o": "mod.open:todoist"`.
 
-## Picker
-
-Favourite filters and projects as a tree on the left, tasks on the right.
+## Keys
 
 | Key | Action |
 | --- | --- |
-| `↑↓`, `←/→`, `Tab` | move, fold subtasks, switch between tree and tasks |
-| `/` | search all open tasks; `↓` leaves the search box onto the first result |
-| `Space` | add or remove the task in the cart |
-| `h` | sent carts: Enter puts a cart's tasks back, `d` deletes it (Korean layout keys ㅗ ㅍ ㅇ work too) |
-| `v` | full task view (title, due with time, labels, url, whole description) |
-| `Enter` | type the cart into an agent pane (never submits). The pane that opened the picker is preselected |
-| `0` / `N`+`Enter` | jump to the cart / to tree row N |
-| `^Y` / `^X` / `^R` | copy the cart (OSC 52) / clear it / refresh from Todoist |
+| `↑↓`, `→`/`Tab`, `←` | move, enter the task list, fold subtasks, back to the tree |
+| `/` | search all open tasks (title, project, labels, description, id) |
+| `Space` or click | add or remove the task in the cart |
+| `v` | full task view |
+| `Enter` | copy the cart as one line, record it in history, empty the cart |
+| `h` | sent carts: `Enter` puts one back, `d` deletes it |
+| `Ctrl+R` / `Ctrl+X` | refresh from Todoist / clear the cart without a record |
 
-After a send the cart is emptied and appended to `history.jsonl` next to `cart.json` in the plugin config directory (`~/.config/herdr/plugins/config/herdr-todoist/`). `^X` clears without a record. The newest 100 sends are kept.
+The old picker typed the cart into an agent pane without pressing Enter. herdr-app has no way to do
+that (`hc send` always submits, `hc keys` cannot type Korean), so the cart goes to the clipboard.
 
-herdr is found through `HERDR_BIN_PATH` (set by herdr), else `herdr` on `PATH`. Popup size: `width`/`height` in `herdr-plugin.toml`. Tests: `python3 test_tdcart.py`.
+Cart and history live in `~/.config/herdr-todoist/` (`cart.json`, `history.jsonl`, newest 100 sends).
+The first run copies the old plugin's files from `~/.config/herdr/plugins/config/herdr-todoist/`.
+
+## CLI
+
+`herdr-todoist workspace | cart | toggle <json> | clear | history | restore <sent> | delete-history <sent> | archive <pane> | text [--lines]`
+prints JSON. `cargo test` covers the cart, history and formatting.
+
+`legacy/` holds the old plugin (Python curses picker) for the previous `herdr` server.
 
 ## License
 
