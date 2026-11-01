@@ -232,7 +232,7 @@ export default class Todoist extends View {
       else if (k === "right" && row?.kids) this.collapsed.delete(row.t.id);
       else if (k === "left" && row?.kids && !this.collapsed.has(row.t.id) && !cur.searching) this.collapsed.add(row.t.id);
       else if (k === "left" || k === "tab") this.focus = "tree";
-      else if (k === " " && row) this.toggleCart(cx, row.t);
+      else if ((k === "space" || k === " ") && row) this.toggleCart(cx, row.t);
       else if (k === "enter") this.send(cx, true);
       else if (k === "c") this.send(cx, false);
       else if (k === "v" && row) this.mode = "detail";
