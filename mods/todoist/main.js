@@ -53,6 +53,7 @@ export default class Todoist extends View {
     this.ws = null;            // {projects, filters, tasks}
     this.cart = [];
     this.preview = "";
+    this.back = null;   // where `b` was pressed, for the way back from the Cart view
     this.history = [];
     this.mode = "tasks";       // tasks | history | detail
     this.focus = "tree";       // tree | tasks
@@ -227,7 +228,11 @@ export default class Todoist extends View {
     const cur = this.current();
     const row = cur.shown[Math.min(this.sel, cur.shown.length - 1)];
     if (k === "escape") { if (this.query) { this.input.set_value(""); this.query = ""; } else if (this.focus === "tasks") this.focus = "tree"; else return closeOverlay(props().overlay); }
-    else if (k === "b") { this.tsel = this.rows().findIndex((x) => x.node?.kind === "cart"); this.sel = 0; this.input.set_value(""); this.query = ""; this.focus = "tasks"; }
+    else if (k === "b") {                    // toggles: Cart, and back to where it was pressed
+      if (cur.node.kind === "cart" && !cur.searching && this.back) { Object.assign(this, this.back); this.back = null; }
+      else { if (!(cur.node.kind === "cart")) this.back = { tsel: this.tsel, sel: this.sel, focus: this.focus }; this.tsel = this.rows().findIndex((x) => x.node?.kind === "cart"); this.sel = 0; this.focus = "tasks"; }
+      this.input.set_value(""); this.query = "";
+    }
     else if (k === "/") { this.focus = "tasks"; this.input.focus(); }
     else if (k === "r" && e.ctrl) this.reload(cx, false);
     else if (k === "x" && e.ctrl) this.act(cx, ["clear"], null, (cx) => this.refreshCart(cx));
