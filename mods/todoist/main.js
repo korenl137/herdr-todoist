@@ -258,7 +258,7 @@ export default class Todoist extends View {
       .w(W).h(H).min_h(0).p(14).gap(8).bg(t.popover).text_size(13).text_color(t.foreground);
     const header = h_flex().h(28).flex_none().items_center().gap(10)
       .child(div().text_size(15).font_semibold().child("Todoist"))
-      .child(div().text_size(11).text_color(t.dim).child(this.busy ? "working…" : ""))
+      .child(div().w(60).flex_none().text_size(11).text_color(t.dim).child(this.busy ? "working…" : ""))  // fixed width: the shortcut hints must not shift
       .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter paste · c copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
     const status = div().h(16).flex_none().text_size(11.5).text_color(t.muted).truncate().child(this.msg);
 
