@@ -28,6 +28,7 @@ Bind a key in `~/.config/herdr-app/keys.json`: `"ctrl-alt-o": "mod.open:todoist"
 | `↑↓`, `→`/`Tab`, `←` | move, enter the task list, fold subtasks, back to the tree |
 | `/` | search all open tasks (title, project, labels, description, id) |
 | `Space` or click | add or remove the task in the cart |
+| `b` | jump to the Cart view (Space removes a task; below the list is the exact text Enter pastes) |
 | `v` | full task view |
 | `Enter` | paste the cart as one line into the terminal underneath (no submit), record it in history, empty the cart |
 | `c` | same, but only copy it to the clipboard |

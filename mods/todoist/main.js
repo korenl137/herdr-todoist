@@ -52,6 +52,7 @@ export default class Todoist extends View {
   init(_props, cx) {
     this.ws = null;            // {projects, filters, tasks}
     this.cart = [];
+    this.preview = "";
     this.history = [];
     this.mode = "tasks";       // tasks | history | detail
     this.focus = "tree";       // tree | tasks
@@ -97,10 +98,19 @@ export default class Todoist extends View {
       else { this.ws = ws; this.msg = first ? "" : "refreshed"; if (first && this.rows()[2]?.node) this.tsel = 2; }
       if (!cart.error) this.cart = cart;
       cx.notify();
+      this.refreshCart(cx);
     });
   }
 
-  refreshCart(cx) { cx.spawn(async (cx) => { const c = await call(["cart"]); if (!c.error) this.cart = c; cx.notify(); }); }
+  // The cart and the exact text Enter would paste (shown as a preview in the Cart view).
+  refreshCart(cx) {
+    cx.spawn(async (cx) => {
+      const [c, p] = await Promise.all([call(["cart"]), call(["text"])]);
+      if (!c.error) this.cart = c;
+      this.preview = p.error ? "" : p.text;
+      cx.notify();
+    });
+  }
 
   // Tree rows: {indent, label, count, node}; node null = header
   rows() {
@@ -217,6 +227,7 @@ export default class Todoist extends View {
     const cur = this.current();
     const row = cur.shown[Math.min(this.sel, cur.shown.length - 1)];
     if (k === "escape") { if (this.query) { this.input.set_value(""); this.query = ""; } else if (this.focus === "tasks") this.focus = "tree"; else return closeOverlay(props().overlay); }
+    else if (k === "b") { this.tsel = this.rows().findIndex((x) => x.node?.kind === "cart"); this.sel = 0; this.input.set_value(""); this.query = ""; this.focus = "tasks"; }
     else if (k === "/") { this.focus = "tasks"; this.input.focus(); }
     else if (k === "r" && e.ctrl) this.reload(cx, false);
     else if (k === "x" && e.ctrl) this.act(cx, ["clear"], null, (cx) => this.refreshCart(cx));
@@ -259,7 +270,7 @@ export default class Todoist extends View {
     const header = h_flex().h(28).flex_none().items_center().gap(10)
       .child(div().text_size(15).font_semibold().child("Todoist"))
       .child(div().w(60).flex_none().text_size(11).text_color(t.dim).child(this.busy ? "working…" : ""))  // fixed width: the shortcut hints must not shift
-      .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · Space cart · Enter paste · c copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
+      .child(div().flex_1().min_w(0).text_size(11).text_color(t.dim).truncate().child("↑↓ move · →/Tab tasks · b cart · Space add/remove · Enter paste · c copy · / search · v detail · h history · ^R refresh · ^X clear cart · Esc"));
     const status = div().h(16).flex_none().text_size(11.5).text_color(t.muted).truncate().child(this.msg);
 
     if (this.mode === "history") {
@@ -315,7 +326,12 @@ export default class Todoist extends View {
         .child(div().w(44).flex_none().text_size(11.5).text_color(t.dim).child((x.due ?? "").slice(5, 10)));
     }, this.listScroll, (key) => { const i = cur.shown.findIndex((r) => r.t.id === key); if (i >= 0) { this.sel = i; this.focus = "tasks"; this.toggleCart(cx, cur.shown[i].t); } });
 
-    const detail = v_flex().h(80).flex_none().gap(2).pt(6)
+    const isCart = cur.node.kind === "cart" && !cur.searching;
+    const detail = isCart
+      ? v_flex().h(80).flex_none().gap(2).pt(6)
+        .child(div().text_size(11).text_color(t.dim).child("Enter pastes exactly this"))
+        .child(div().text_size(11.5).text_color(t.foreground).max_h(60).overflow_hidden().child(this.cart.length ? this.preview : "(cart is empty)"))
+      : v_flex().h(80).flex_none().gap(2).pt(6)
       .child(div().font_semibold().truncate().child(picked?.title ?? ""))
       .child(div().text_size(11).text_color(t.dim).truncate().child(picked ? [picked.project, picked.due, picked.id].filter(Boolean).join(" · ") : ""))
       .child(div().text_size(11.5).text_color(t.muted).max_h(32).overflow_hidden().child(plain(picked?.desc)));
