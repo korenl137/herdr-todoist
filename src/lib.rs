@@ -79,12 +79,22 @@ pub fn normalize(t: &Value, projects: &HashMap<String, String>) -> Task {
 #[derive(Serialize)]
 pub struct Workspace { pub projects: Vec<Value>, pub filters: Vec<Value>, pub tasks: Vec<Task> }
 
+/// Inbox, Today and Next 7 days lead the Favorites; one whose query a favourite already has is skipped.
+fn with_builtin_filters(favourites: Vec<Value>) -> Vec<Value> {
+    let mut all: Vec<Value> = [("Inbox", "#Inbox"), ("Today", "overdue | today"), ("Next 7 days", "next 7 days")].iter()
+        .filter(|(_, q)| !favourites.iter().any(|f| f["query"].as_str() == Some(q)))
+        .map(|(n, q)| serde_json::json!({"name": n, "query": q})).collect();
+    all.extend(favourites);
+    all
+}
+
 /// Favourite filters with their tasks, every project, every open task. The td calls run in parallel.
 pub fn workspace(env: &Env) -> Result<Workspace> {
     let projects = td(env, &["project", "list", "--all"])?;
     let names: HashMap<String, String> = projects.iter()
         .filter_map(|p| Some((p["id"].as_str()?.to_string(), p["name"].as_str()?.to_string()))).collect();
-    let filters: Vec<Value> = td(env, &["filter", "list"])?.into_iter().filter(|f| f["isFavorite"].as_bool() == Some(true)).collect();
+    let favourites: Vec<Value> = td(env, &["filter", "list"])?.into_iter().filter(|f| f["isFavorite"].as_bool() == Some(true)).collect();
+    let filters = with_builtin_filters(favourites);
     let (all, per_filter) = std::thread::scope(|s| -> Result<(Vec<Value>, Vec<Vec<Value>>)> {
         let all = s.spawn(|| td(env, &["task", "list", "--all"]));
         let each: Vec<_> = filters.iter().map(|f| {
@@ -216,6 +226,14 @@ mod tests {
         assert_eq!(read_token(&e.env_file).unwrap(), "abc123");
         fs::write(&e.env_file, "TODOIST_API_TOKEN=\n").unwrap();
         assert!(read_token(&e.env_file).is_err());
+    }
+
+    #[test]
+    fn builtin_filters_lead_and_skip_a_query_a_favourite_has() {
+        let names = |v: Vec<Value>| v.iter().map(|f| f["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+        assert_eq!(names(with_builtin_filters(vec![])), ["Inbox", "Today", "Next 7 days"]);
+        let fav = vec![json!({"name": "다음 7일", "query": "next 7 days"})];
+        assert_eq!(names(with_builtin_filters(fav)), ["Inbox", "Today", "다음 7일"]);
     }
 
     #[test]

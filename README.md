@@ -3,7 +3,7 @@
 Todoist task picker for [herdr-app](https://herdr.dev). A Rust binary (`herdr-todoist`) does the work;
 a JavaScript mod (`mods/todoist`) draws the dialog and calls it.
 
-Favourite filters and projects as a tree on the left, tasks on the right. Pick tasks into a cart,
+Inbox, Today, Next 7 days and your favourite filters, then projects, as a tree on the left (a built-in is skipped when a favourite has the same query); tasks on the right. Pick tasks into a cart,
 copy the cart as one line, paste it into an agent. The plugin never writes to Todoist.
 
 ## Needs
