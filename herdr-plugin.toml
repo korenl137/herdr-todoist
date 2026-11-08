@@ -3,7 +3,7 @@
 id = "herdr-todoist"
 name = "Todoist"
 version = "0.1.0"
-description = "Read-only Todoist 'today' panel, refreshed every 60 seconds."
+description = "Read-only Todoist panel (inbox, today, upcoming) and a task picker."
 min_herdr_version = "0.8.0"
 platforms = ["linux", "macos"]
 
@@ -11,7 +11,7 @@ platforms = ["linux", "macos"]
 id = "today"
 title = "Todoist"
 placement = "split"
-command = ["./todoist-panel.sh"]
+command = ["./legacy/todoist-panel.sh"]
 platforms = ["linux", "macos"]
 
 [[actions]]
@@ -28,7 +28,7 @@ title = "Todoist picker"
 placement = "popup"
 width = 120
 height = 36
-command = ["python3", "picker.py"]
+command = ["python3", "legacy/picker.py"]
 platforms = ["linux", "macos"]
 
 [[actions]]

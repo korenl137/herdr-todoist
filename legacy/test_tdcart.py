@@ -41,3 +41,7 @@ assert picker.fit("🗓️a", 3) == "🗓a " and picker.fit("한글ab", 6) == "�
 assert picker.wrap("가나다라마바사", 6, 2) == ["가나다", "라마… "]
 print("ok picker")
 assert picker.wrap_all("가나다라마\n\nab", 6) == ["가나다", "라마", "", "ab"]
+
+names = lambda v: [f["name"] for f in v]
+assert names(tdcart.with_builtin_filters([])) == ["Inbox", "Today", "Next 7 days"]
+assert names(tdcart.with_builtin_filters([{"name": "다음 7일", "query": "next 7 days"}])) == ["Inbox", "Today", "다음 7일"]

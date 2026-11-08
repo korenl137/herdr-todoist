@@ -21,6 +21,18 @@ herdr-mod-manager install . --accept            # or copy mods/todoist to ~/.con
 
 Bind a key in `~/.config/herdr-app/keys.json`: `"ctrl-alt-o": "mod.open:todoist"`.
 
+### Terminal herdr (TUI plugin)
+
+The same repository is also the plugin for the terminal `herdr` server; its manifest `herdr-plugin.toml` runs the Python code in `legacy/`:
+
+```sh
+herdr plugin link /path/to/herdr-todoist
+herdr plugin action invoke herdr-todoist.picker   # picker popup (bind it as a plugin_action key)
+herdr plugin action invoke herdr-todoist.open     # read-only panel: inbox, today, upcoming
+```
+
+Needs only `td` and the token above (no Rust). Cart and history live in `~/.config/herdr/plugins/config/herdr-todoist/`.
+
 ## Keys
 
 | Key | Action |
@@ -45,7 +57,7 @@ The first run copies the old plugin's files from `~/.config/herdr/plugins/config
 `herdr-todoist workspace | cart | toggle <json> | clear | history | restore <sent> | delete-history <sent> | archive <pane> | text [--lines]`
 prints JSON. `cargo test` covers the cart, history and formatting.
 
-`legacy/` holds the old plugin (Python curses picker) for the previous `herdr` server.
+`legacy/` holds the Python code behind the terminal plugin (curses picker and panel). Tests: `python3 legacy/test_tdcart.py`.
 
 ## License
 

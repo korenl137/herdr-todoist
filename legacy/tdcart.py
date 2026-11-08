@@ -37,12 +37,21 @@ def load_tasks(query="today | overdue"):
     return [_norm(t, projects) for t in _td("task", "list", "--filter", query)]
 
 
+BUILTIN_FILTERS = [("Inbox", "#Inbox"), ("Today", "overdue | today"), ("Next 7 days", "next 7 days")]
+
+
+def with_builtin_filters(favourites):
+    """Inbox, Today and Next 7 days lead the Favorites; one whose query a favourite already has is skipped."""
+    have = {f["query"] for f in favourites}
+    return [{"name": n, "query": q} for n, q in BUILTIN_FILTERS if q not in have] + favourites
+
+
 def load_workspace():
     """Everything the tree needs: projects, favourite filters with their tasks, all open tasks."""
     from concurrent.futures import ThreadPoolExecutor
     projects = _td("project", "list")
     names = {p["id"]: p["name"] for p in projects}
-    filters = [f for f in _td("filter", "list") if f.get("isFavorite")]
+    filters = with_builtin_filters([f for f in _td("filter", "list") if f.get("isFavorite")])
     with ThreadPoolExecutor() as ex:
         jobs = [ex.submit(_td, "task", "list", "--all")] + [ex.submit(_td, "task", "list", "--filter", f["query"]) for f in filters]
         results = [j.result() for j in jobs]
