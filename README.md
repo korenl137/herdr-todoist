@@ -42,7 +42,7 @@ Needs only `td` and the token above (no Rust). Cart and history live in `~/.conf
 | `Space` or click | add or remove the task in the cart |
 | `b` | jump to the Cart view (Space removes a task; below the list is the exact text Enter pastes) |
 | `v` | full task view |
-| `Enter` | paste the cart as one line into the terminal underneath (no submit), record it in history, empty the cart |
+| `Enter` | paste the cart as one line into the terminal underneath (no submit), record it in history, empty the cart; with an empty cart it pastes the highlighted task (the detail area shows the line first) |
 | `c` | same, but only copy it to the clipboard |
 | `h` | sent carts: `Enter` puts one back, `d` deletes it |
 | `Ctrl+R` / `Ctrl+X` | refresh from Todoist / clear the cart without a record |
