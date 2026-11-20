@@ -1,5 +1,5 @@
 // Todoist picker. Left: Cart, favourite filters, projects. Right: tasks.
-// Space adds a task to the cart, Enter pastes the cart as one line into the terminal that was focused (it does not submit), c only copies it.
+// Space adds a task to the cart. Enter pastes the cart as one line into the terminal that was focused (it does not submit); with an empty cart it pastes the highlighted task. c only copies.
 // All data and the cart live in the `herdr-todoist` binary (Rust); this file only draws and calls it.
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, Scrollbar, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
@@ -31,6 +31,8 @@ const matches = (t, q) => {
   return words(q).every((w) => hay.includes(w));
 };
 const plain = (md) => (md ?? "").replace(/[#>*`]/g, "").split(/\s+/).filter(Boolean).join(" ");
+// Mirrors format_oneline in src/lib.rs: the line Enter pastes for one task (keep the two in step).
+const oneLine = (t) => `Todoist tasks: ${t.title} (${t.id}) ${t.url}`;
 const tag = (p) => (p === 4 ? "P1" : p === 3 ? "P2" : "");
 
 // Subtasks follow their parent; a collapsed parent hides them. -> [{t, depth, kids}]
@@ -168,11 +170,16 @@ export default class Todoist extends View {
 
   // Copies the cart as one line, records it as sent, empties it. With paste, closes the picker and pastes
   // into the terminal underneath (bracketed paste: the agent gets text, not a submit).
-  send(cx, paste) {
-    if (!this.cart.length) { this.msg = "cart is empty"; return cx.notify(); }
+  // An empty cart sends `task` (the highlighted one) instead, through the same cart path.
+  send(cx, paste, task) {
+    if (!this.cart.length && !task) { this.msg = "cart is empty"; return cx.notify(); }
+    if (this.busy) return;
     const target = focused()?.agent ?? focused()?.terminal ?? "clipboard";
+    this.busy = true; cx.notify();
     cx.spawn(async (cx) => {
-      const r = await call(["text"]);
+      const added = this.cart.length ? {} : await call(["toggle", JSON.stringify(task)]);
+      const r = added.error ? added : await call(["text"]);
+      this.busy = false;
       if (r.error) { this.msg = r.error; return cx.notify(); }
       try { await copy(r.text); } catch (e) { this.msg = String(e.message ?? e); return cx.notify(); }
       const a = await call(["archive", target]);
@@ -249,8 +256,8 @@ export default class Todoist extends View {
       else if (k === "left" && row?.kids && !this.collapsed.has(row.t.id) && !cur.searching) this.collapsed.add(row.t.id);
       else if (k === "left" || k === "tab") this.focus = "tree";
       else if ((k === "space" || k === " ") && row) this.toggleCart(cx, row.t);
-      else if (k === "enter") this.send(cx, true);
-      else if (k === "c") this.send(cx, false);
+      else if (k === "enter") this.send(cx, true, row?.t);
+      else if (k === "c") this.send(cx, false, row?.t);
       else if (k === "v" && row) this.mode = "detail";
       else if (k === "h") this.openHistory(cx);
       else return;
@@ -336,7 +343,8 @@ export default class Todoist extends View {
       ? v_flex().h(80).flex_none().gap(2).pt(6)
         .child(div().text_size(11).text_color(t.dim).child("Enter pastes exactly this"))
         .child(div().text_size(11.5).text_color(t.foreground).max_h(60).overflow_hidden().child(this.cart.length ? this.preview : "(cart is empty)"))
-      : v_flex().h(80).flex_none().gap(2).pt(6)
+      : v_flex().h(96).flex_none().gap(2).pt(6)
+      .child(div().text_size(11).text_color(t.dim).truncate().child(this.cart.length ? `Enter pastes the cart (${this.cart.length} tasks), b shows it` : picked ? `Enter pastes: ${oneLine(picked)}` : ""))
       .child(div().font_semibold().truncate().child(picked?.title ?? ""))
       .child(div().text_size(11).text_color(t.dim).truncate().child(picked ? [picked.project, picked.due, picked.id].filter(Boolean).join(" · ") : ""))
       .child(div().text_size(11.5).text_color(t.muted).max_h(32).overflow_hidden().child(plain(picked?.desc)));
