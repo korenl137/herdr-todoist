@@ -344,7 +344,7 @@ export default class Todoist extends View {
         .child(div().text_size(11).text_color(t.dim).child("Enter pastes exactly this"))
         .child(div().text_size(11.5).text_color(t.foreground).max_h(60).overflow_hidden().child(this.cart.length ? this.preview : "(cart is empty)"))
       : v_flex().h(96).flex_none().gap(2).pt(6)
-      .child(div().text_size(11).text_color(t.dim).truncate().child(this.cart.length ? `Enter pastes the cart (${this.cart.length} tasks), b shows it` : picked ? `Enter pastes: ${oneLine(picked)}` : ""))
+      .child(div().text_size(11).text_color(this.cart.length ? t.accent : t.dim).truncate().child(this.cart.length ? `Enter pastes the cart (${this.cart.length} tasks), b shows it` : picked ? `Enter pastes: ${oneLine(picked)}` : ""))
       .child(div().font_semibold().truncate().child(picked?.title ?? ""))
       .child(div().text_size(11).text_color(t.dim).truncate().child(picked ? [picked.project, picked.due, picked.id].filter(Boolean).join(" · ") : ""))
       .child(div().text_size(11.5).text_color(t.muted).max_h(32).overflow_hidden().child(plain(picked?.desc)));
